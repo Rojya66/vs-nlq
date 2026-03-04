@@ -16,18 +16,27 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Download Vapoursynth SDK
+      - name: Setup Vapoursynth Libs
+        shell: pwsh
         run: |
-          # 从 GitHub 下载 Vapoursynth 编译好的库文件 (Header/Lib)
-          # 我们只需要它的 .lib 文件来骗过编译器
+          # 下载便携版
           curl -L https://github.com/vapoursynth/vapoursynth/releases/download/R65/Vapoursynth64-Portable-R65.7z -o vs.7z
           7z x vs.7z -ovs_sdk
-          # 将 lib 目录添加到环境变量，让 Rust 链接器能找到它
-          echo "LIB=$GITHUB_WORKSPACE\vs_sdk\sdk\lib64" >> $GITHUB_ENV
-          echo "VAPOURSYNTH_LIB_DIR=$GITHUB_WORKSPACE\vs_sdk\sdk\lib64" >> $GITHUB_ENV
+          
+          # 关键步骤：把 .lib 文件拷贝到当前目录，方便链接器直接抓取
+          copy vs_sdk\sdk\lib64\vapoursynth.lib .
+          copy vs_sdk\sdk\lib64\vsscript.lib .
+          
+          # 设置环境变量
+          echo "VAPOURSYNTH_LIB_DIR=$PWD" >> $env:GITHUB_ENV
+          echo "LIB=$PWD" >> $env:GITHUB_ENV
 
       - name: Build Release
-        run: cargo build --release
+        shell: pwsh
+        run: |
+          # RUSTFLAGS 指定链接路径为当前目录 (.)
+          $env:RUSTFLAGS = "-L ."
+          cargo build --release
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
