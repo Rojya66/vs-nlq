@@ -19,28 +19,28 @@ jobs:
       - name: Setup Vapoursynth Libs
         shell: pwsh
         run: |
-          # 下载便携版
+          # 下载 R65 版本的 SDK
           curl -L https://github.com/vapoursynth/vapoursynth/releases/download/R65/Vapoursynth64-Portable-R65.7z -o vs.7z
           7z x vs.7z -ovs_sdk
           
-          # 关键步骤：把 .lib 文件拷贝到当前目录，方便链接器直接抓取
+          # 将 .lib 文件拷贝到项目根目录（这一步非常重要）
           copy vs_sdk\sdk\lib64\vapoursynth.lib .
           copy vs_sdk\sdk\lib64\vsscript.lib .
           
-          # 设置环境变量
-          echo "VAPOURSYNTH_LIB_DIR=$PWD" >> $env:GITHUB_ENV
-          echo "LIB=$PWD" >> $env:GITHUB_ENV
+          # 打印一下当前目录文件，确保 lib 真的在那里（用于调试）
+          ls *.lib
 
       - name: Build Release
         shell: pwsh
         run: |
-          # RUSTFLAGS 指定链接路径为当前目录 (.)
-          $env:RUSTFLAGS = "-L ."
+          # 使用 RUSTFLAGS 显式告诉链接器：去当前目录 (.) 找库文件
+          # 使用 -L native=. 强制指定本地库搜索路径
+          $env:RUSTFLAGS = "-L native=."
           cargo build --release
 
-        - name: Upload Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: vs-nlq-windows-x64
-          # 使用通配符 *.dll，这样 target/release/ 下的 dll 都会被抓取
+          # 使用通配符，不管生成的是 vs_nlq.dll 还是 vs-nlq.dll 都能抓到
           path: target/release/*.dll
