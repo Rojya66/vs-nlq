@@ -38,8 +38,9 @@ jobs:
           $env:RUSTFLAGS = "-L ."
           cargo build --release
 
-      - name: Upload Artifact
+        - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: vs-nlq-windows-x64
-          path: target/release/vsnlq.dll
+          # 使用通配符 *.dll，这样 target/release/ 下的 dll 都会被抓取
+          path: target/release/*.dll
